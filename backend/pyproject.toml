@@ -1,0 +1,38 @@
+[project]
+name = "kairos-backend"
+version = "0.1.0"
+description = "Kairos EdTech micro-feedback platform — FastAPI backend"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Kairos Team"},
+]
+dependencies = [
+    "fastapi==0.115.12",
+    "uvicorn[standard]==0.34.3",
+    "pydantic==2.11.4",
+    "pydantic-settings==2.9.1",
+    "google-genai==1.16.1",
+    "httpx==0.28.1",
+    "python-json-logger==3.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.5",
+    "pytest-asyncio==0.25.3",
+]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
