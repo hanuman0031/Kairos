@@ -1,0 +1,32 @@
+# =============================================================================
+# Kairos Backend ConfigMap
+# =============================================================================
+# Non-secret configuration consumed by the backend deployment via envFrom.
+# All placeholder values marked with <...> must be replaced before applying.
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kairos-backend-config
+  namespace: kairos
+  labels:
+    app.kubernetes.io/name: kairos-backend
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: kairos-platform
+    app.kubernetes.io/managed-by: kubectl
+data:
+  # Google Cloud project hosting Vertex AI resources.
+  GCP_PROJECT_ID: "<PROJECT_ID>"
+
+  # GCP region for Vertex AI endpoint (e.g. us-central1, europe-west4).
+  GCP_LOCATION: "<GCP_LOCATION>"
+
+  # Gemini model identifier used for micro-feedback generation.
+  GEMINI_MODEL: "gemini-2.0-flash"
+
+  # Application log level (DEBUG | INFO | WARNING | ERROR | CRITICAL).
+  LOG_LEVEL: "INFO"
+
+  # Deployment environment tag (development | staging | production).
+  ENVIRONMENT: "production"
+  

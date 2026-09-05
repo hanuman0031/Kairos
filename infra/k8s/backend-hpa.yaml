@@ -1,0 +1,44 @@
+# =============================================================================
+# Kairos Backend HorizontalPodAutoscaler (v2)
+# =============================================================================
+# Scales the backend between 2–10 replicas based on CPU utilisation.
+#   - Target: 70% average CPU
+#   - Scale-down stabilisation: 300 s (prevents flapping)
+#   - Scale-up: max 2 pods per 60 s (controlled ramp)
+# =============================================================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: kairos-backend-hpa
+  namespace: kairos
+  labels:
+    app.kubernetes.io/name: kairos-backend
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: kairos-platform
+    app.kubernetes.io/managed-by: kubectl
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: kairos-backend
+  minReplicas: 2
+  maxReplicas: 10
+
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+  behavior:
+    # --- Scale-down: conservative ---
+    scaleDown:
+      stabilizationWindowSeconds: 300
+    # --- Scale-up: controlled ramp ---
+    scaleUp:
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60

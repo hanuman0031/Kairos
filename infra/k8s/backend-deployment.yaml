@@ -1,0 +1,119 @@
+# =============================================================================
+# Kairos Backend Deployment
+# =============================================================================
+# Runs the FastAPI/Uvicorn backend with:
+#   - 2 base replicas (HPA scales to 10)
+#   - Workload Identity via kairos-backend-sa
+#   - Hardened security context (non-root, read-only fs, no caps)
+#   - Pod anti-affinity for cross-node spreading
+#   - Liveness & readiness probes
+#   - tmpfs volume for /tmp (read-only root fs requires this)
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kairos-backend
+  namespace: kairos
+  labels:
+    app.kubernetes.io/name: kairos-backend
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: kairos-platform
+    app.kubernetes.io/managed-by: kubectl
+    app.kubernetes.io/version: "0.1.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kairos-backend
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kairos-backend
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/part-of: kairos-platform
+    spec:
+      # --- Service Account (Workload Identity) ---
+      serviceAccountName: kairos-backend-sa
+
+      # --- Graceful shutdown ---
+      terminationGracePeriodSeconds: 30
+
+      # --- Pod anti-affinity: prefer spreading across nodes ---
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - kairos-backend
+                topologyKey: kubernetes.io/hostname
+
+      # --- Volumes ---
+      volumes:
+        # tmpfs for ephemeral files — needed because the root fs is read-only.
+        - name: tmp-volume
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
+
+      containers:
+        - name: kairos-backend
+          # Replace <PROJECT_ID> with your GCP project ID.
+          image: gcr.io/<PROJECT_ID>/kairos-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          # --- Environment from ConfigMap ---
+          envFrom:
+            - configMapRef:
+                name: kairos-backend-config
+
+          # --- Resource management ---
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+
+          # --- Probes ---
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+          # --- Security context (container-level) ---
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+
+          # --- Volume mounts ---
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp

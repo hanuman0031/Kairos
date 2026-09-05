@@ -1,0 +1,100 @@
+# =============================================================================
+# Kairos Frontend Deployment
+# =============================================================================
+# Runs the Next.js standalone frontend with:
+#   - 2 replicas
+#   - Hardened security context (non-root, read-only fs, no caps)
+#   - Liveness & readiness probes
+#   - API URL pointing to the in-cluster backend service
+#   - tmpfs volume for /tmp
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kairos-frontend
+  namespace: kairos
+  labels:
+    app.kubernetes.io/name: kairos-frontend
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: kairos-platform
+    app.kubernetes.io/managed-by: kubectl
+    app.kubernetes.io/version: "0.1.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kairos-frontend
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kairos-frontend
+        app.kubernetes.io/component: frontend
+        app.kubernetes.io/part-of: kairos-platform
+    spec:
+      terminationGracePeriodSeconds: 30
+
+      # --- Volumes ---
+      volumes:
+        - name: tmp-volume
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
+
+      containers:
+        - name: kairos-frontend
+          # Replace <PROJECT_ID> with your GCP project ID.
+          image: gcr.io/<PROJECT_ID>/kairos-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+
+          # --- Environment ---
+          env:
+            # In-cluster URL for the backend API service.
+            - name: NEXT_PUBLIC_API_URL
+              value: "http://kairos-backend.kairos.svc.cluster.local"
+
+          # --- Resource management ---
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+          # --- Probes ---
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+          # --- Security context (container-level) ---
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+
+          # --- Volume mounts ---
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp

@@ -1,0 +1,63 @@
+# =============================================================================
+# Skaffold Configuration — Kairos Local Development
+# =============================================================================
+# Builds both container images and deploys all K8s manifests.
+#
+# Usage:
+#   skaffold dev          # continuous build + deploy on file changes
+#   skaffold run          # one-shot build + deploy
+#   skaffold delete       # tear down deployed resources
+# =============================================================================
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: kairos
+
+build:
+  artifacts:
+    # --- Backend image ---
+    - image: gcr.io/<PROJECT_ID>/kairos-backend
+      docker:
+        dockerfile: docker/backend.Dockerfile
+      # Rebuild when backend source or requirements change.
+      sync:
+        manual:
+          - src: "../backend/app/**/*.py"
+            dest: /app/app
+
+    # --- Frontend image ---
+    - image: gcr.io/<PROJECT_ID>/kairos-frontend
+      docker:
+        dockerfile: docker/frontend.Dockerfile
+
+  # Use local Docker daemon for builds (no push during dev).
+  local:
+    push: false
+
+manifests:
+  rawYaml:
+    - k8s/namespace.yaml
+    - k8s/backend-configmap.yaml
+    - k8s/backend-serviceaccount.yaml
+    - k8s/backend-deployment.yaml
+    - k8s/backend-service.yaml
+    - k8s/backend-hpa.yaml
+    - k8s/frontend-deployment.yaml
+    - k8s/frontend-service.yaml
+    - k8s/ingress.yaml
+
+deploy:
+  kubectl: {}
+
+# --- Port forwarding for local development ---
+portForward:
+  - resourceType: service
+    resourceName: kairos-backend
+    namespace: kairos
+    port: 80
+    localPort: 8000
+  - resourceType: service
+    resourceName: kairos-frontend
+    namespace: kairos
+    port: 80
+    localPort: 3000

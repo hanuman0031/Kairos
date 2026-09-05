@@ -1,0 +1,13 @@
+# =============================================================================
+# Kairos Namespace
+# =============================================================================
+# All Kairos workloads, services, and configuration live in this namespace.
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kairos
+  labels:
+    app.kubernetes.io/name: kairos
+    app.kubernetes.io/part-of: kairos-platform
+    app.kubernetes.io/managed-by: kubectl

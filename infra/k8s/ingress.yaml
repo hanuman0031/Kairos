@@ -1,0 +1,63 @@
+# =============================================================================
+# Kairos Ingress — GCE Ingress Controller
+# =============================================================================
+# Routes external traffic:
+#   /api/*  →  kairos-backend   (port 80)
+#   /*      →  kairos-frontend  (port 80)
+#
+# TLS is handled via Google-managed certificates.
+# Replace <DOMAIN> and <CERTIFICATE_NAME> before applying.
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kairos-ingress
+  namespace: kairos
+  labels:
+    app.kubernetes.io/name: kairos-ingress
+    app.kubernetes.io/part-of: kairos-platform
+    app.kubernetes.io/managed-by: kubectl
+  annotations:
+    # Use the GCE ingress controller (GKE default).
+    kubernetes.io/ingress.class: "gce"
+
+    # Google-managed TLS certificate (replace <CERTIFICATE_NAME>).
+    # Create with: gcloud compute ssl-certificates create <CERTIFICATE_NAME> \
+    #   --domains=<DOMAIN>
+    networking.gke.io/managed-certificates: "<CERTIFICATE_NAME>"
+
+    # Redirect HTTP → HTTPS.
+    kubernetes.io/ingress.allow-http: "false"
+
+    # Optional: static IP (reserve with gcloud compute addresses create kairos-ip --global)
+    # kubernetes.io/ingress.global-static-ip-name: "kairos-ip"
+spec:
+  # --- Default backend: frontend ---
+  defaultBackend:
+    service:
+      name: kairos-frontend
+      port:
+        number: 80
+
+  rules:
+    # Replace <DOMAIN> with your actual domain (e.g. kairos.example.com).
+    - host: "<DOMAIN>"
+      http:
+        paths:
+          # API traffic → backend service.
+          - path: /api/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: kairos-backend
+                port:
+                  number: 80
+
+          # All other traffic → frontend service.
+          - path: /*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: kairos-frontend
+                port:
+                  number: 80

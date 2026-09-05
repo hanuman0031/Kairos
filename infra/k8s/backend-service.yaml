@@ -1,0 +1,26 @@
+# =============================================================================
+# Kairos Backend Service
+# =============================================================================
+# ClusterIP service exposing the backend pods on port 80 internally.
+# Other in-cluster consumers (ingress, frontend) connect here.
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: kairos-backend
+  namespace: kairos
+  labels:
+    app.kubernetes.io/name: kairos-backend
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: kairos-platform
+    app.kubernetes.io/managed-by: kubectl
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: kairos-backend
+    app.kubernetes.io/component: backend
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8000

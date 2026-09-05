@@ -1,0 +1,26 @@
+# =============================================================================
+# Kairos Frontend Service
+# =============================================================================
+# ClusterIP service exposing the frontend pods on port 80 internally.
+# The Ingress resource routes external traffic here.
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: kairos-frontend
+  namespace: kairos
+  labels:
+    app.kubernetes.io/name: kairos-frontend
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: kairos-platform
+    app.kubernetes.io/managed-by: kubectl
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: kairos-frontend
+    app.kubernetes.io/component: frontend
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 3000
