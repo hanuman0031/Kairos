@@ -13,7 +13,7 @@ The system is divided into three major sections:
 ## 📁 Project Structure
 
 ```text
-Student-Management-System/
+Kairos
 │
 ├── frontend/
 │   ├── components/
